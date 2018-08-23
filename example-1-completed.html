@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Cambridge Coffee Shops</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+  </head>
+  <body>
+    <div id="wrapper">
+      <div id="header">
+        <h1>Caffeinated Cambridge</h1>
+      </div>
+      <div id="map"></div>
+      <div id="controls">
+        <div id="form">
+          <form action="">
+            <input type="radio" name="filter" value="all" checked>Show All Coffee Shops
+            <input type="radio" name="filter" value="starbucks">Starbucks Only
+          </form>
+        </div>
+        <div id="credits"><p>Coffee Shop Data from <a href="http://www.referenceusa.com/">ReferenceUSA</a><br>#webMapWorkshop - &copy;2015, Mike Foster</p></div>
+      </div>
+    </div>
+
+    <!-- include leaflet.js library -->
+    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script>
+    // Create Leaflet map object
+    var map = L.map('map',{ center: [42.381899, -71.122499], zoom: 13});
+
+    // Add Tile Layer basemap
+    L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
+    maxZoom: 18,
+    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+      '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+      'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+    id: 'mapbox.streets'
+  }).addTo(map);
+
+    // Global Variables
+    // Will go here
+    var coffeeShopLocations = null;
+
+    // Database Queries
+    // Get all coffee cafes from dataset
+    var sqlQuery = "SELECT * FROM bcim_unidade_protecao_integral_a";
+    // Get all coffee cafes that have name 'Starbucks'
+    var sqlQueryStarbucks = "SELECT * FROM bcim_unidade_protecao_integral_a WHERE tipounidpr='Parque - PAR'";
+
+    // Set CartoDB Username
+    var cartoDBUserName = "plano-c";
+
+    // Function to add call coffee shops
+    // Get CartoDB selection as GeoJSON and Add to Map
+    function showAll(){
+      $.getJSON("https://"+cartoDBUserName+".cartodb.com/api/v2/sql?format=GeoJSON&q="+sqlQuery, function(data) {
+        coffeeShopLocations = L.geoJson(data,{
+          onEachFeature: function (feature, layer) {
+            layer.bindPopup('<p><b>' + feature.properties.name + '</b><br /><em>' + feature.properties.address + '</em></p>');
+            layer.cartodb_id=feature.properties.cartodb_id;
+          }
+        }).addTo(map);
+      });
+    };
+
+    // Run showAll function automatically when document loads
+    $( document ).ready(function() {
+      showAll();
+    });
+
+    // Function to Filter Starbucks
+    function showParques(){
+      if(map.hasLayer(coffeeShopLocations)){
+        map.removeLayer(coffeeShopLocations);
+      };
+      $.getJSON("https://"+cartoDBUserName+".cartodb.com/api/v2/sql?format=GeoJSON&q="+sqlQueryStarbucks, function(data) {
+        coffeeShopLocations = L.geoJson(data,{
+          onEachFeature: function (feature, layer) {
+            layer.bindPopup('<p><b>' + feature.properties.name + '</b><br /><em>' + feature.properties.address + '</em></p>');
+            layer.cartodb_id=feature.properties.cartodb_id;
+          }
+        }).addTo(map);
+      });
+    };
+
+    // Event Listeners
+    $('input[value=starbucks]').click(function(){
+      showParques();
+    });
+
+    $('input[value=all]').click(function(){
+      showAll();
+    });
+    </script>
+  </body>
+</html>
